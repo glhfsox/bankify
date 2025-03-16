@@ -13,16 +13,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
-import {
   Tooltip as UITooltip,
   TooltipContent,
   TooltipProvider,
@@ -37,7 +27,6 @@ export default function SavingsCalculator() {
   const [years, setYears] = useState(5);
   const [interestRate, setInterestRate] = useState(2.5);
   const [compoundFrequency, setCompoundFrequency] = useState("monthly");
-  const [chartData, setChartData] = useState<Record<string, unknown>[]>([]);
   const [totalInterest, setTotalInterest] = useState(0);
   const [finalBalance, setFinalBalance] = useState(0);
 
@@ -66,48 +55,22 @@ export default function SavingsCalculator() {
     const rate = interestRate / 100 / compoundsPerYear;
     const timeCompounding = years * compoundsPerYear;
     
-    const data = [];
     let balance = initialDeposit;
     let totalDeposits = initialDeposit;
     let yearlyInterest = 0;
     
-    // Initial year (year 0)
-    data.push({
-      year: 0,
-      deposits: initialDeposit,
-      interest: 0,
-      balance: initialDeposit,
-    });
-    
-    // For each year
-    for (let year = 1; year <= years; year++) {
-      const yearlySavingsData = { 
-        year, 
-        deposits: 0, 
-        interest: 0, 
-        balance: 0 
-      };
+    // For each compound period
+    for (let period = 1; period <= timeCompounding; period++) {
+      // Add monthly deposit
+      balance += monthlyDeposit;
+      totalDeposits += monthlyDeposit;
       
-      // Calculate for each compound period within the year
-      for (let period = 1; period <= compoundsPerYear; period++) {
-        // Add monthly deposit
-        balance += monthlyDeposit;
-        totalDeposits += monthlyDeposit;
-        
-        // Add interest for this period
-        const periodInterest = balance * rate;
-        balance += periodInterest;
-        yearlyInterest += periodInterest;
-      }
-      
-      yearlySavingsData.deposits = Math.round(totalDeposits);
-      yearlySavingsData.interest = Math.round(yearlyInterest);
-      yearlySavingsData.balance = Math.round(balance);
-      
-      data.push(yearlySavingsData);
+      // Add interest for this period
+      const periodInterest = balance * rate;
+      balance += periodInterest;
+      yearlyInterest += periodInterest;
     }
     
-    setChartData(data);
     setTotalInterest(Math.round(yearlyInterest));
     setFinalBalance(Math.round(balance));
   }, [initialDeposit, monthlyDeposit, years, interestRate, compoundFrequency]);
@@ -321,45 +284,28 @@ export default function SavingsCalculator() {
                 </div>
               </div>
 
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={chartData}
-                    margin={{
-                      top: 10,
-                      right: 10,
-                      left: 0,
-                      bottom: 10,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <XAxis dataKey="year" />
-                    <YAxis
-                      tickFormatter={(value) =>
-                        new Intl.NumberFormat("en-US", {
-                          notation: "compact",
-                          compactDisplay: "short",
-                        }).format(value)
-                      }
-                    />
-                    <Tooltip
-                      formatter={(value: number) => formatCurrency(value)}
-                    />
-                    <Legend />
-                    <Bar
-                      dataKey="deposits"
-                      name="Deposits"
-                      stackId="a"
-                      fill="#9CA3AF"
-                    />
-                    <Bar
-                      dataKey="interest"
-                      name="Interest"
-                      stackId="a"
-                      fill="#10B981"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="h-[300px] bg-secondary/20 rounded-lg flex flex-col items-center justify-center p-6">
+                <p className="text-center text-muted-foreground mb-3">
+                  Savings Growth Visualization
+                </p>
+                <div className="w-full grid grid-cols-5 gap-2 mt-3">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex flex-col items-center">
+                      <div 
+                        className="w-full bg-primary/20 rounded-t-md"
+                        style={{ 
+                          height: `${60 + (i * 30)}px`,
+                          opacity: 0.4 + (i * 0.15)
+                        }}
+                      ></div>
+                      <div className="text-xs mt-1">Year {Math.round(i * years/4)}</div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm text-center text-muted-foreground mt-4">
+                  With {formatCurrency(monthlyDeposit)} monthly deposits at {interestRate.toFixed(1)}% interest,<br />
+                  compounded {compoundFrequency}, you'll have <strong>{formatCurrency(finalBalance)}</strong> in {years} years.
+                </p>
               </div>
             </div>
           </div>
