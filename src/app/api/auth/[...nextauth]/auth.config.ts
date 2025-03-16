@@ -1,7 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-export const authConfig = {
+export const authConfig: NextAuthConfig = {
   pages: {
     signIn: "/auth/login",
   },
@@ -50,4 +50,4 @@ export const authConfig = {
       },
     }),
   ],
-} satisfies NextAuthConfig;
+};
