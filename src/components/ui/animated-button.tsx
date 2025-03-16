@@ -13,9 +13,9 @@ type AnimatedButtonProps = {
   className?: string;
   href?: string;
   onClick?: () => void;
-  whileHover?: any;
-  whileTap?: any;
-  [x: string]: any;
+  whileHover?: Record<string, unknown>;
+  whileTap?: Record<string, unknown>;
+  [x: string]: unknown;
 };
 
 export function AnimatedButton({
@@ -49,10 +49,10 @@ export function AnimatedButton({
   }
 
   return (
-    <Button
-      variant={variant}
-      size={size}
-      className={cn("overflow-hidden", className)}
+    <Button 
+      variant={variant} 
+      size={size} 
+      className={cn("overflow-hidden", className)} 
       onClick={onClick}
       {...props}
     >
