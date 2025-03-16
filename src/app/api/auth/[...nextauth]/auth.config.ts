@@ -1,53 +1,92 @@
 import type { NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
+import FacebookProvider from "next-auth/providers/facebook";
+import AppleProvider from "next-auth/providers/apple";
+
+// For a real application, replace this with your actual authentication logic
+// This is a mock implementation for demonstration purposes
+const mockUsers = [
+  {
+    id: "1",
+    name: "John Doe",
+    email: "john@example.com",
+    password: "password123",
+  },
+];
 
 export const authConfig: NextAuthConfig = {
-  pages: {
-    signIn: "/auth/login",
-  },
-  callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
-      const isLoggedIn = !!auth?.user;
-      const isOnDashboard = nextUrl.pathname.startsWith("/dashboard");
-      if (isOnDashboard) {
-        if (isLoggedIn) return true;
-        return false; // Redirect unauthenticated users to login page
-      } else if (isLoggedIn) {
-        return true;
-      }
-      return true;
-    },
-    jwt({ token, user }) {
-      if (user) {
-        token.userId = user.id;
-      }
-      return token;
-    },
-    session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.userId as string;
-      }
-      return session;
-    },
-  },
   providers: [
     CredentialsProvider({
+      id: "credentials",
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        // Demo user for deployment - in a real app, check credentials against DB
-        if (credentials?.email && credentials?.password) {
+        if (!credentials?.email || !credentials.password) {
+          return null;
+        }
+
+        // In a real application, you'd check against your database
+        const user = mockUsers.find(
+          (user) =>
+            user.email === credentials.email &&
+            user.password === credentials.password
+        );
+
+        if (user) {
           return {
-            id: "demo-user-id",
+            id: user.id,
+            name: user.name,
+            email: user.email,
+          };
+        }
+
+        // For demo purposes, if no users match, still return a mock user
+        // Remove this in a real application
+        if (credentials.email && credentials.password) {
+          return {
+            id: "mock-id",
             name: "Demo User",
             email: credentials.email,
           };
         }
+
         return null;
       },
     }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || "mock-google-client-id",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "mock-google-client-secret",
+    }),
+    FacebookProvider({
+      clientId: process.env.FACEBOOK_CLIENT_ID || "mock-facebook-client-id",
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET || "mock-facebook-client-secret",
+    }),
+    AppleProvider({
+      clientId: process.env.APPLE_CLIENT_ID || "mock-apple-client-id",
+      clientSecret: process.env.APPLE_CLIENT_SECRET || "mock-apple-client-secret",
+    }),
   ],
+  pages: {
+    signIn: "/auth/login",
+    signOut: "/",
+    error: "/auth/error",
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token && session.user) {
+        session.user.id = token.id as string;
+      }
+      return session;
+    },
+  },
 };
