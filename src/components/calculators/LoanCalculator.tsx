@@ -6,14 +6,6 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  Legend,
-} from "recharts";
-import {
   Tooltip as UITooltip,
   TooltipContent,
   TooltipProvider,
@@ -71,11 +63,6 @@ export default function LoanCalculator() {
       maximumFractionDigits: 0,
     }).format(value);
   };
-
-  const chartData = [
-    { name: "Principal", value: loanAmount, color: "#6366F1" },
-    { name: "Interest", value: totalInterest, color: "#F59E0B" },
-  ];
 
   return (
     <motion.div
@@ -196,51 +183,66 @@ export default function LoanCalculator() {
             </div>
 
             <div className="space-y-4">
-              <div className="h-[300px] flex items-center justify-center">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={120}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) => 
-                        `${name}: ${(percent * 100).toFixed(0)}%`
-                      }
+              <div className="h-[300px] bg-secondary/20 rounded-lg flex flex-col items-center justify-center p-6">
+                <p className="text-center text-muted-foreground mb-3">
+                  Payment Breakdown
+                </p>
+                <div className="w-full flex flex-col items-center gap-4">
+                  <div className="w-full flex">
+                    <div 
+                      className="h-8 bg-indigo-500 rounded-l-md flex items-center justify-center text-white text-xs"
+                      style={{ width: `${(loanAmount / totalPayment) * 100}%` }}
                     >
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number) => formatCurrency(value)}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                <h3 className="font-medium mb-2">Payment Breakdown</h3>
-                <p className="text-sm text-muted-foreground">
-                  Your monthly payment of {formatCurrency(monthlyPayment)} will pay off your 
-                  {" "}{formatCurrency(loanAmount)} loan in {loanTerm} {loanTerm === 1 ? "year" : "years"}.
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  You will pay a total of {formatCurrency(totalInterest)} in interest, which is 
-                  {" "}{totalInterest > 0 ? ((totalInterest / loanAmount) * 100).toFixed(1) : "0"}% of your loan amount.
-                </p>
+                      Principal
+                    </div>
+                    <div 
+                      className="h-8 bg-amber-500 rounded-r-md flex items-center justify-center text-white text-xs"
+                      style={{ width: `${(totalInterest / totalPayment) * 100}%` }}
+                    >
+                      Interest
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 w-full text-center text-sm">
+                    <div>
+                      <p className="font-medium">{formatCurrency(loanAmount)}</p>
+                      <p className="text-xs text-muted-foreground">Principal</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">{formatCurrency(totalInterest)}</p>
+                      <p className="text-xs text-muted-foreground">Interest</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-6 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Your monthly payment of {formatCurrency(monthlyPayment)} will pay off your 
+                    {" "}{formatCurrency(loanAmount)} loan in {loanTerm} {loanTerm === 1 ? "year" : "years"}.
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    You will pay a total of {formatCurrency(totalInterest)} in interest, which is 
+                    {" "}{totalInterest > 0 ? ((totalInterest / loanAmount) * 100).toFixed(1) : "0"}% of your loan amount.
+                  </p>
+                </div>
               </div>
               
-              <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+              <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
                 <h3 className="font-medium mb-2">Loan Tips</h3>
                 <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                   <li>A shorter loan term means higher monthly payments but less interest overall.</li>
                   <li>Consider making extra payments to reduce the principal and save on interest.</li>
                   <li>Shop around for the best interest rates to minimize your total cost.</li>
+                </ul>
+              </div>
+              
+              <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+                <h3 className="font-medium mb-2">Payment Schedule</h3>
+                <p className="text-sm text-muted-foreground">
+                  For this {formatCurrency(loanAmount)} loan:
+                </p>
+                <ul className="text-sm text-muted-foreground mt-2 space-y-1">
+                  <li>• First Year: ~{formatCurrency(monthlyPayment * 12)} in payments</li>
+                  <li>• Middle Years: Gradually less interest, more principal</li>
+                  <li>• Final Year: ~{formatCurrency(monthlyPayment * 12)} with minimal interest</li>
                 </ul>
               </div>
             </div>
