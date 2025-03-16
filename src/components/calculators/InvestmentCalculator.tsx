@@ -38,8 +38,8 @@ export default function InvestmentCalculator() {
   };
 
   const calculateInvestment = useCallback(() => {
-    let monthlyRate = interestRate / 100 / 12;
-    let months = years * 12;
+    const monthlyRate = interestRate / 100 / 12;
+    const months = years * 12;
     let totalContrib = initialInvestment;
     
     let currentValue = initialInvestment;
