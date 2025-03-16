@@ -63,11 +63,12 @@ export default function RegisterPage() {
 
       router.push("/dashboard");
     } catch (err: unknown) {
-      if(err instanceof Error) {
+      if (err instanceof Error) {
         setError(err.message);
-    } else {
-        setError("Something went wrong . Please try again");
-      finally {
+      } else {
+        setError("Something went wrong. Please try again");
+      }
+    } finally {
       setLoading(false);
     }
   };
