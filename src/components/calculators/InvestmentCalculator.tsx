@@ -2,15 +2,34 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { InfoIcon } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
-import { AnimatedSection } from "@/components/ui/animated-section";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function InvestmentCalculator() {
   const [initialInvestment, setInitialInvestment] = useState(5000);
@@ -18,246 +37,338 @@ export default function InvestmentCalculator() {
   const [years, setYears] = useState(10);
   const [interestRate, setInterestRate] = useState(7);
   const [investmentType, setInvestmentType] = useState("balanced");
-  const [projectionData, setProjectionData] = useState<Array<Record<string, unknown>>>([]);
-  const [totalInvested, setTotalInvested] = useState(0);
+  const [chartData, setChartData] = useState<Record<string, unknown>[]>([]);
+  const [totalContributions, setTotalContributions] = useState(0);
   const [totalInterest, setTotalInterest] = useState(0);
-  const [finalBalance, setFinalBalance] = useState(0);
+  const [finalAmount, setFinalAmount] = useState(0);
 
   const riskProfiles = {
-    conservative: { min: 3, max: 5, default: 4, color: "#4ade80" }, // Green
-    balanced: { min: 5, max: 9, default: 7, color: "#3b82f6" }, // Blue
-    aggressive: { min: 8, max: 12, default: 10, color: "#ef4444" } // Red
+    conservative: { color: "#4CAF50", range: "3-5%" },
+    balanced: { color: "#2196F3", range: "5-8%" },
+    aggressive: { color: "#F44336", range: "8-12%" },
   };
 
   const calculateInvestment = useCallback(() => {
-    let balance = initialInvestment;
-    let totalContributions = initialInvestment;
-    const monthlyRate = interestRate / 100 / 12;
-    const totalMonths = years * 12;
+    let monthlyRate = interestRate / 100 / 12;
+    let months = years * 12;
+    let totalContrib = initialInvestment;
     
     const data = [];
-    
-    // Calculate values for each year
-    for (let year = 1; year <= years; year++) {
-      let yearlyContributions = 0;
-      
-      // Process each month in the year
-      for (let month = 1; month <= 12; month++) {
-        if (year === 1 && month === 1) continue; // Skip first month as we already have initial investment
-        
-        yearlyContributions += monthlyContribution;
-        balance += monthlyContribution;
-        balance *= (1 + monthlyRate);
+    let currentValue = initialInvestment;
+
+    for (let year = 0; year <= years; year++) {
+      // If it's not the starting year, calculate growth
+      if (year > 0) {
+        // Calculate 12 months of growth
+        for (let month = 0; month < 12; month++) {
+          currentValue = currentValue * (1 + monthlyRate) + monthlyContribution;
+          if (year < years || month === 11) {
+            totalContrib += monthlyContribution;
+          }
+        }
       }
-      
-      totalContributions += yearlyContributions;
-      
+
+      // Push yearly data point
       data.push({
         year,
-        balance: Math.round(balance),
-        contributions: totalContributions,
-        interest: Math.round(balance - totalContributions)
+        value: Math.round(currentValue),
+        contributions: year === 0 ? initialInvestment : Math.round(totalContrib),
       });
     }
-    
-    setTotalInvested(Math.round(totalContributions));
-    setTotalInterest(Math.round(balance - totalContributions));
-    setFinalBalance(Math.round(balance));
-    setProjectionData(data);
-  }, [initialInvestment, monthlyContribution, interestRate, years]);
 
-  // Set interest rate when investment type changes
-  useEffect(() => {
-    const profile = riskProfiles[investmentType as keyof typeof riskProfiles];
-    setInterestRate(profile.default);
-  }, [investmentType]);
+    // Calculate our final statistics
+    const totalInvested = totalContrib;
+    const finalValue = Math.round(currentValue);
+    const totalInterestEarned = finalValue - totalInvested;
 
-  // Recalculate when any input changes
+    setChartData(data);
+    setTotalContributions(totalInvested);
+    setTotalInterest(totalInterestEarned);
+    setFinalAmount(finalValue);
+  }, [initialInvestment, monthlyContribution, years, interestRate]);
+
+  // Update calculations when inputs change
   useEffect(() => {
     calculateInvestment();
   }, [initialInvestment, monthlyContribution, years, interestRate, calculateInvestment]);
 
+  // Update interest rate when investment type changes
+  useEffect(() => {
+    switch (investmentType) {
+      case "conservative":
+        setInterestRate(4);
+        break;
+      case "balanced":
+        setInterestRate(7);
+        break;
+      case "aggressive":
+        setInterestRate(10);
+        break;
+      default:
+        setInterestRate(7);
+    }
+  }, [investmentType]);
+
+  const handleInitialInvestmentChange = (value: string) => {
+    const amount = parseInt(value.replace(/,/g, ""));
+    if (!isNaN(amount)) {
+      setInitialInvestment(amount);
+    } else if (value === "") {
+      setInitialInvestment(0);
+    }
+  };
+
+  const handleMonthlyContributionChange = (value: string) => {
+    const amount = parseInt(value.replace(/,/g, ""));
+    if (!isNaN(amount)) {
+      setMonthlyContribution(amount);
+    } else if (value === "") {
+      setMonthlyContribution(0);
+    }
+  };
+
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
-      currency: 'USD',
-      maximumFractionDigits: 0
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
     }).format(value);
   };
 
-  // Custom tooltip for the chart
-  const CustomTooltip = ({ active, payload, label }: { active?: boolean, payload?: any[], label?: string }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-background border rounded p-3 shadow-lg">
-          <p className="font-medium">Year {label}</p>
-          <p className="text-sm">Balance: {formatCurrency(payload[0].value)}</p>
-          <p className="text-sm">Contributions: {formatCurrency(payload[1].value)}</p>
-          <p className="text-sm">Interest: {formatCurrency(payload[2].value)}</p>
-        </div>
-      );
-    }
-    return null;
-  };
-
   return (
-    <AnimatedSection className="w-full max-w-4xl mx-auto">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Investment Calculator</span>
-            <Select value={investmentType} onValueChange={setInvestmentType}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Risk profile" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="conservative">Conservative</SelectItem>
-                <SelectItem value="balanced">Balanced</SelectItem>
-                <SelectItem value="aggressive">Aggressive</SelectItem>
-              </SelectContent>
-            </Select>
+          <CardTitle className="text-2xl flex items-center">
+            Investment Calculator
+            <TooltipProvider>
+              <UITooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-5 w-5 ml-2 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p>
+                    Calculate potential investment growth based on initial
+                    investment, monthly contributions, and expected rate of
+                    return.
+                  </p>
+                </TooltipContent>
+              </UITooltip>
+            </TooltipProvider>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <div className="space-y-2">
+              <div>
                 <div className="flex justify-between">
-                  <Label htmlFor="initialInvestment" className="flex items-center">
-                    Initial Investment
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <InfoIcon className="ml-1 h-3 w-3 text-muted-foreground" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="w-[200px] text-xs">The amount you start with.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </Label>
-                  <span className="text-sm">{formatCurrency(initialInvestment)}</span>
+                  <Label htmlFor="initialInvestment">Initial Investment</Label>
+                  <span className="text-sm text-muted-foreground">
+                    {formatCurrency(initialInvestment)}
+                  </span>
+                </div>
+                <div className="flex mt-2">
+                  <span className="bg-muted flex items-center px-3 rounded-l-md border border-r-0 border-input">
+                    $
+                  </span>
+                  <Input
+                    id="initialInvestment"
+                    type="text"
+                    className="rounded-l-none"
+                    value={initialInvestment.toLocaleString()}
+                    onChange={(e) => handleInitialInvestmentChange(e.target.value)}
+                  />
                 </div>
                 <Slider
-                  id="initialInvestment"
-                  min={1000}
+                  value={[initialInvestment]}
+                  min={0}
                   max={100000}
                   step={1000}
-                  value={[initialInvestment]}
-                  onValueChange={([value]) => setInitialInvestment(value)}
-                />
-                <Input
-                  type="number"
-                  value={initialInvestment}
-                  onChange={(e) => setInitialInvestment(Number(e.target.value))}
+                  onValueChange={(value) => setInitialInvestment(value[0])}
                   className="mt-2"
                 />
               </div>
 
-              <div className="space-y-2">
+              <div>
                 <div className="flex justify-between">
-                  <Label htmlFor="monthlyContribution">Monthly Contribution</Label>
-                  <span className="text-sm">{formatCurrency(monthlyContribution)}</span>
+                  <Label htmlFor="monthlyContribution">
+                    Monthly Contribution
+                  </Label>
+                  <span className="text-sm text-muted-foreground">
+                    {formatCurrency(monthlyContribution)}
+                  </span>
+                </div>
+                <div className="flex mt-2">
+                  <span className="bg-muted flex items-center px-3 rounded-l-md border border-r-0 border-input">
+                    $
+                  </span>
+                  <Input
+                    id="monthlyContribution"
+                    type="text"
+                    className="rounded-l-none"
+                    value={monthlyContribution.toLocaleString()}
+                    onChange={(e) =>
+                      handleMonthlyContributionChange(e.target.value)
+                    }
+                  />
                 </div>
                 <Slider
-                  id="monthlyContribution"
+                  value={[monthlyContribution]}
                   min={0}
                   max={2000}
                   step={50}
-                  value={[monthlyContribution]}
-                  onValueChange={([value]) => setMonthlyContribution(value)}
-                />
-                <Input
-                  type="number"
-                  value={monthlyContribution}
-                  onChange={(e) => setMonthlyContribution(Number(e.target.value))}
+                  onValueChange={(value) => setMonthlyContribution(value[0])}
                   className="mt-2"
                 />
               </div>
 
-              <div className="space-y-2">
+              <div>
                 <div className="flex justify-between">
-                  <Label htmlFor="years">Investment Period (Years)</Label>
-                  <span className="text-sm">{years} years</span>
+                  <Label htmlFor="years">Time Period (Years)</Label>
+                  <span className="text-sm text-muted-foreground">
+                    {years} years
+                  </span>
                 </div>
                 <Slider
                   id="years"
+                  value={[years]}
                   min={1}
                   max={40}
                   step={1}
-                  value={[years]}
-                  onValueChange={([value]) => setYears(value)}
-                />
-                <Input
-                  type="number"
-                  value={years}
-                  onChange={(e) => setYears(Number(e.target.value))}
+                  onValueChange={(value) => setYears(value[0])}
                   className="mt-2"
                 />
               </div>
 
-              <div className="space-y-2">
+              <div>
+                <Label htmlFor="investmentType">Investment Profile</Label>
+                <Select
+                  value={investmentType}
+                  onValueChange={setInvestmentType}
+                >
+                  <SelectTrigger id="investmentType" className="mt-2">
+                    <SelectValue placeholder="Select investment profile" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="conservative">
+                      Conservative ({riskProfiles.conservative.range})
+                    </SelectItem>
+                    <SelectItem value="balanced">
+                      Balanced ({riskProfiles.balanced.range})
+                    </SelectItem>
+                    <SelectItem value="aggressive">
+                      Aggressive ({riskProfiles.aggressive.range})
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
                 <div className="flex justify-between">
-                  <Label htmlFor="interestRate">Annual Return Rate (%)</Label>
-                  <span className="text-sm">{interestRate}%</span>
+                  <Label htmlFor="interestRate">
+                    Expected Annual Return (%)
+                  </Label>
+                  <span className="text-sm text-muted-foreground">
+                    {interestRate}%
+                  </span>
                 </div>
                 <Slider
                   id="interestRate"
-                  min={riskProfiles[investmentType as keyof typeof riskProfiles].min}
-                  max={riskProfiles[investmentType as keyof typeof riskProfiles].max}
-                  step={0.1}
                   value={[interestRate]}
-                  onValueChange={([value]) => setInterestRate(value)}
-                />
-                <Input
-                  type="number"
-                  value={interestRate}
-                  onChange={(e) => setInterestRate(Number(e.target.value))}
+                  min={1}
+                  max={15}
+                  step={0.1}
+                  onValueChange={(value) => setInterestRate(value[0])}
                   className="mt-2"
                 />
               </div>
+            </div>
 
-              <div className="pt-4 grid grid-cols-3 gap-4">
-                <div className="bg-secondary/50 p-3 rounded-lg">
-                  <div className="text-muted-foreground text-xs">Total Invested</div>
-                  <div className="font-semibold">{formatCurrency(totalInvested)}</div>
-                </div>
-                <div className="bg-secondary/50 p-3 rounded-lg">
-                  <div className="text-muted-foreground text-xs">Total Interest</div>
-                  <div className="font-semibold">{formatCurrency(totalInterest)}</div>
-                </div>
-                <div className="bg-primary/10 p-3 rounded-lg">
-                  <div className="text-primary text-xs">Final Balance</div>
-                  <div className="font-semibold">{formatCurrency(finalBalance)}</div>
+            <div className="space-y-4">
+              <div className="bg-muted p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">Projection Summary</h3>
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="flex justify-between">
+                    <span>Total Contributions:</span>
+                    <span className="font-medium">
+                      {formatCurrency(totalContributions)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Total Interest Earned:</span>
+                    <span className="font-medium text-green-600">
+                      {formatCurrency(totalInterest)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2 mt-2">
+                    <span>Final Amount:</span>
+                    <span className="font-bold text-lg">
+                      {formatCurrency(finalAmount)}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={projectionData}
-                  margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="year" label={{ value: 'Years', position: 'insideBottom', offset: -5 }} />
-                  <YAxis tickFormatter={(value) => `$${value / 1000}k`} />
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Bar dataKey="balance" name="Balance" fill={riskProfiles[investmentType as keyof typeof riskProfiles].color} />
-                  <Bar dataKey="contributions" name="Contributions" fill="#94a3b8" />
-                  <Bar dataKey="interest" name="Interest" fill="#22c55e" />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={chartData}
+                    margin={{
+                      top: 10,
+                      right: 10,
+                      left: 0,
+                      bottom: 10,
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis
+                      dataKey="year"
+                      label={{
+                        value: "Years",
+                        position: "insideBottom",
+                        offset: -5,
+                      }}
+                    />
+                    <YAxis
+                      tickFormatter={(value) =>
+                        new Intl.NumberFormat("en-US", {
+                          notation: "compact",
+                          compactDisplay: "short",
+                        }).format(value)
+                      }
+                    />
+                    <Tooltip
+                      formatter={(value: number) => formatCurrency(value)}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="contributions"
+                      name="Contributions"
+                      stroke="#9CA3AF"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      name="Total Value"
+                      stroke={riskProfiles[investmentType as keyof typeof riskProfiles].color}
+                      strokeWidth={3}
+                      dot={false}
+                      activeDot={{ r: 8 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          </div>
-
-          <div className="mt-6 p-4 bg-secondary/30 rounded-lg text-sm">
-            <p>This calculator provides an estimate of potential investment growth and does not guarantee actual returns. 
-            Investment performance depends on various factors including market conditions, fees, and more. For personalized advice, consult a financial advisor.</p>
           </div>
         </CardContent>
       </Card>
-    </AnimatedSection>
+    </motion.div>
   );
 }
