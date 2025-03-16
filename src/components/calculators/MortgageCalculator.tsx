@@ -6,16 +6,6 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
-import {
   Tooltip as UITooltip,
   TooltipContent,
   TooltipProvider,
@@ -34,7 +24,6 @@ export default function MortgageCalculator() {
   const [monthlyTaxes, setMonthlyTaxes] = useState(0);
   const [monthlyInsurance, setMonthlyInsurance] = useState(0);
   const [totalMonthlyPayment, setTotalMonthlyPayment] = useState(0);
-  const [chartData, setChartData] = useState<Array<Record<string, unknown>>>([]);
 
   // Property tax rate (estimated at 1.1% of home value annually)
   const propertyTaxRate = 0.011;
@@ -71,30 +60,6 @@ export default function MortgageCalculator() {
     setMonthlyTaxes(monthlyTaxPayment);
     setMonthlyInsurance(monthlyInsurancePayment);
     setTotalMonthlyPayment(total);
-
-    // Calculate breakdown of payments
-    const principalAndInterest = Math.round(payment);
-    const taxes = Math.round(monthlyTaxPayment);
-    const insurance = Math.round(monthlyInsurancePayment);
-
-    // Create chart data
-    setChartData([
-      {
-        name: "Principal & Interest",
-        value: principalAndInterest,
-        color: "#3B82F6",
-      },
-      {
-        name: "Property Taxes",
-        value: taxes,
-        color: "#F59E0B",
-      },
-      {
-        name: "Insurance",
-        value: insurance,
-        color: "#10B981",
-      },
-    ]);
   }, [homePrice, downPayment, interestRate, loanTerm]);
 
   useEffect(() => {
@@ -298,35 +263,47 @@ export default function MortgageCalculator() {
             </div>
 
             <div className="space-y-4">
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={chartData}
-                    layout="vertical"
-                    margin={{
-                      top: 20,
-                      right: 30,
-                      left: 20,
-                      bottom: 5,
+              <div className="h-[300px] bg-secondary/20 rounded-lg flex flex-col items-center justify-center p-6">
+                <p className="text-center text-muted-foreground mb-3">
+                  Monthly Payment Breakdown
+                </p>
+                <div className="w-full rounded-md overflow-hidden mt-4">
+                  <div 
+                    className="h-10 bg-blue-500 text-white flex items-center px-2 text-xs"
+                    style={{ 
+                      width: `${(monthlyPayment / totalMonthlyPayment) * 100}%`,
+                      minWidth: '60px'
                     }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" tickFormatter={(value) => formatCurrency(value)} />
-                    <YAxis type="category" dataKey="name" />
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                    <Legend />
-                    <Bar
-                      dataKey="value"
-                      name="Monthly Amount"
-                      fill="#3B82F6"
-                      isAnimationActive={true}
+                    Principal & Interest
+                  </div>
+                  <div className="flex">
+                    <div 
+                      className="h-10 bg-amber-500 text-white flex items-center px-2 text-xs"
+                      style={{ 
+                        width: `${(monthlyTaxes / totalMonthlyPayment) * 100}%`,
+                        minWidth: '40px'
+                      }}
                     >
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color as string} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                      Taxes
+                    </div>
+                    <div 
+                      className="h-10 bg-green-500 text-white flex items-center px-2 text-xs"
+                      style={{ 
+                        width: `${(monthlyInsurance / totalMonthlyPayment) * 100}%`,
+                        minWidth: '40px'
+                      }}
+                    >
+                      Insurance
+                    </div>
+                  </div>
+                </div>
+                <div className="text-center mt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Your monthly payment of {formatCurrency(totalMonthlyPayment)} includes
+                    principal, interest, property taxes, and insurance.
+                  </p>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
