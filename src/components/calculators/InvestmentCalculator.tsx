@@ -13,16 +13,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
-import {
   Tooltip as UITooltip,
   TooltipContent,
   TooltipProvider,
@@ -37,7 +27,6 @@ export default function InvestmentCalculator() {
   const [years, setYears] = useState(10);
   const [interestRate, setInterestRate] = useState(7);
   const [investmentType, setInvestmentType] = useState("balanced");
-  const [chartData, setChartData] = useState<Record<string, unknown>[]>([]);
   const [totalContributions, setTotalContributions] = useState(0);
   const [totalInterest, setTotalInterest] = useState(0);
   const [finalAmount, setFinalAmount] = useState(0);
@@ -53,27 +42,15 @@ export default function InvestmentCalculator() {
     let months = years * 12;
     let totalContrib = initialInvestment;
     
-    const data = [];
     let currentValue = initialInvestment;
 
-    for (let year = 0; year <= years; year++) {
-      // If it's not the starting year, calculate growth
-      if (year > 0) {
-        // Calculate 12 months of growth
-        for (let month = 0; month < 12; month++) {
-          currentValue = currentValue * (1 + monthlyRate) + monthlyContribution;
-          if (year < years || month === 11) {
-            totalContrib += monthlyContribution;
-          }
-        }
+    // If it's not the starting year, calculate growth
+    for (let year = 1; year <= years; year++) {
+      // Calculate 12 months of growth
+      for (let month = 0; month < 12; month++) {
+        currentValue = currentValue * (1 + monthlyRate) + monthlyContribution;
+        totalContrib += monthlyContribution;
       }
-
-      // Push yearly data point
-      data.push({
-        year,
-        value: Math.round(currentValue),
-        contributions: year === 0 ? initialInvestment : Math.round(totalContrib),
-      });
     }
 
     // Calculate our final statistics
@@ -81,7 +58,6 @@ export default function InvestmentCalculator() {
     const finalValue = Math.round(currentValue);
     const totalInterestEarned = finalValue - totalInvested;
 
-    setChartData(data);
     setTotalContributions(totalInvested);
     setTotalInterest(totalInterestEarned);
     setFinalAmount(finalValue);
@@ -313,57 +289,20 @@ export default function InvestmentCalculator() {
                 </div>
               </div>
 
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={chartData}
-                    margin={{
-                      top: 10,
-                      right: 10,
-                      left: 0,
-                      bottom: 10,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <XAxis
-                      dataKey="year"
-                      label={{
-                        value: "Years",
-                        position: "insideBottom",
-                        offset: -5,
-                      }}
-                    />
-                    <YAxis
-                      tickFormatter={(value) =>
-                        new Intl.NumberFormat("en-US", {
-                          notation: "compact",
-                          compactDisplay: "short",
-                        }).format(value)
-                      }
-                    />
-                    <Tooltip
-                      formatter={(value: number) => formatCurrency(value)}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="contributions"
-                      name="Contributions"
-                      stroke="#9CA3AF"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      name="Total Value"
-                      stroke={riskProfiles[investmentType as keyof typeof riskProfiles].color}
-                      strokeWidth={3}
-                      dot={false}
-                      activeDot={{ r: 8 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+              <div className="h-[300px] bg-secondary/20 rounded-lg flex flex-col items-center justify-center p-6">
+                <p className="text-center text-muted-foreground mb-3">
+                  Investment Growth Visualization
+                </p>
+                <div className="w-full border-t border-dashed border-primary/30 relative my-3">
+                  <div className="absolute -right-1 -top-2 h-3 w-3 rounded-full bg-primary"></div>
+                  <div className="absolute right-1/3 -top-1 h-2 w-2 rounded-full bg-primary/70"></div>
+                  <div className="absolute right-2/3 -top-1 h-2 w-2 rounded-full bg-primary/40"></div>
+                  <div className="absolute left-0 -top-1 h-2 w-2 rounded-full bg-primary/20"></div>
+                </div>
+                <p className="text-sm text-center text-muted-foreground">
+                  At {interestRate}% annual return over {years} years,<br />
+                  your investment will grow to <strong>{formatCurrency(finalAmount)}</strong>
+                </p>
               </div>
             </div>
           </div>
