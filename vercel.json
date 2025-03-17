@@ -1,7 +1,10 @@
 {
   "buildCommand": "next build",
   "outputDirectory": ".next",
-  "installCommand": "bun install",
+  "installCommand": "npm install",
   "framework": "nextjs",
-  "devCommand": "next dev"
+  "regions": ["iad1"],
+  "github": {
+    "silent": true
+  }
 }
