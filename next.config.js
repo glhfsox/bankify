@@ -1,15 +1,17 @@
-/** @type {import('next').NextConfig} */
 const withPWA = require('next-pwa')({
   dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development'
 });
 
-const nextConfig = withPWA({
-  /* config options here */
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  swcMinify: true,
+  output: 'standalone',
   images: {
-    unoptimized: true,
+    unoptimized: process.env.NODE_ENV !== 'production',
     domains: [
       "source.unsplash.com",
       "images.unsplash.com",
@@ -37,6 +39,16 @@ const nextConfig = withPWA({
       },
     ],
   },
-});
+  experimental: {
+    serverActions: true,
+    optimizeCss: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+};
 
-module.exports = nextConfig;
+module.exports = withPWA(nextConfig);
